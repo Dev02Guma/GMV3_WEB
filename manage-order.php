@@ -20,7 +20,7 @@
 
 
 </style>
-<?php include 'public/table-order.php'; ?>
+<?php //include 'public/table-order.php'; ?>
 
 <?php include 'public/footer.php'; ?>
 
