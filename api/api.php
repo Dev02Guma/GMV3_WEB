@@ -41,7 +41,7 @@ if (isset($_GET['category_id'])) {
     $Lista = (in_array($CODIGO_RUTA , $PROYECTO_B)) ? '20' : '80' ;
 
 
-    $EXCENTOS   = array("F02", "F04", "F11", "F20","F18");
+    $EXCENTOS   = array("F02", "F04", "F11", "F20","F18","F09","F10");
     $isExcentos = (in_array($CODIGO_RUTA , $EXCENTOS)) ? true : false;
     
     $json = array();
@@ -417,6 +417,7 @@ if (isset($_GET['category_id'])) {
             $Pin_num_rows = mysqli_num_rows($rPin);
 
             $isPin = ($Pin_num_rows == 0) ? "N" : "S";
+            $isPlan =($key['PLAN_CRECI'] == 0) ? "N" : "S";
 
             $retVal = ($key['MOROSO'] == 'S') ? $key['NOMBRE']." [MOROSO]" : $key['NOMBRE'] ;
 
@@ -431,6 +432,7 @@ if (isset($_GET['category_id'])) {
             $dta[$i]['CONDPA']      = "Cond. Pago: ".$key['CONDICION_PAGO'].' Dias';
             $dta[$i]['VERIFICADO']  = $Verificaco;
             $dta[$i]['PIN']         = $isPin;
+            $dta[$i]['PLAN']         = $isPlan;
             $dta[$i]['vineta']       = number_format($key['SALDO_VINETA'],2);
             $i++;
         }
@@ -1395,6 +1397,56 @@ ORDER BY
 
     
     
+}else if (isset($_GET['PLAN'])){
+
+    
+
+    $ruta        = $_GET['PLAN'];
+
+    $Q01="SELECT * FROM view_plan_crecimiento WHERE CLIENTE_CODIGO='".$ruta ."'";
+    
+    $Q02="SELECT month(T0.Fecha_de_Factura) number_month,SUBSTRING(t0.MES,0,4) name_month,t0.[AÑO] annio,sum(T0.VentaNetaLocal) ttMonth 
+        FROM Softland.dbo.ANA_VentasTotales_MOD_Contabilidad_UMK T0 WHERE t0.[AÑO] = YEAR(GETDATE())  AND  T0.Fecha_de_Factura >= '2022-07-01 00:00:00.000' 
+        AND T0.CLIENTE_CODIGO= '".$ruta ."' and T0.VentaNetaLocal  > 0
+        GROUP BY month(T0.Fecha_de_Factura),t0.MES,t0.[AÑO] ORDER BY month(T0.Fecha_de_Factura)";
+
+    $sqlsrv = new Sqlsrv();
+
+    $dta        = array(); 
+    $dta_month  = array(); 
+
+    $i=0;
+
+    $query_result01 = $sqlsrv->fetchArray($Q01, SQLSRV_FETCH_ASSOC);
+    foreach ($query_result01 as $key) {
+        $dta['EVALUADO']      = ceil($key['EVALUADO']);
+        $dta['CRECIMIENTO']      = ceil($key['CRECIMIENTO']);
+        $dta['COMPRA_MIN']      = ceil($key['COMPRA_MIN']);
+        $dta['PROM_CUMP']      = ceil(number_format($key['PROM_CUMP'],0));
+    }
+
+    $query_result02 = $sqlsrv->fetchArray($Q02, SQLSRV_FETCH_ASSOC);
+    foreach ($query_result02 as $key) {        
+        $dta_month[$i]['number_month']    = $key['number_month'];      
+        $dta_month[$i]['name_month']    = $key['name_month'];      
+        $dta_month[$i]['annio']    = $key['annio'];      
+        $dta_month[$i]['ttMonth']      = ceil($key['ttMonth']);
+        $i++;
+    }
+
+    $dtaBodega[] = array(
+        'InfoCliente' => $dta,
+        'SalesMonths' => $dta_month
+    );
+
+    $sqlsrv->close();
+
+
+
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo $val = str_replace('\\/', '/', json_encode($dtaBodega));
+
 }else{
     header('Content-Type: application/json; charset=utf-8');
     echo "no method found!";
